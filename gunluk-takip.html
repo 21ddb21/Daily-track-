@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Günlük Takip</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F7F8F6; --surface:#FFFFFF; --ink:#1C2B27; --muted:#6B756F;
+    --line:#E4E7E2; --pine:#2F6F5E; --pine-soft:#E7F0EC; --clay:#C2643F;
+    --display:'Space Grotesk',system-ui,sans-serif;
+    --body:'Inter',system-ui,-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{font-family:var(--body);background:var(--paper);color:var(--ink);line-height:1.45;
+    padding:18px 14px 64px;max-width:560px;margin:0 auto;-webkit-font-smoothing:antialiased}
+  .hidden{display:none!important}
+
+  .eyebrow{font:600 11px/1 var(--body);letter-spacing:.16em;color:var(--pine);text-transform:uppercase}
+  .total{font:700 46px/1 var(--display);font-variant-numeric:tabular-nums;margin-top:8px}
+  .total small{font-size:17px;color:var(--muted);font-weight:500;margin-left:3px}
+  .total.gain{color:var(--clay)}
+  .cap{color:var(--muted);font-size:13px;margin-top:6px}
+
+  .pbar{height:8px;background:var(--line);border-radius:6px;overflow:hidden;margin-top:12px}
+  .pbar > i{display:block;height:100%;background:var(--pine);border-radius:6px;transition:width .3s}
+
+  .calcap{font:600 13px var(--body);letter-spacing:.04em;text-transform:uppercase;color:var(--muted);
+    margin:26px 0 12px;text-align:center}
+  .calhead{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:6px}
+  .wd{font:600 10px/1 var(--body);color:var(--muted);text-align:center;letter-spacing:.04em;text-transform:uppercase}
+  .cal{display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:58px;gap:5px}
+  .cell{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:11px;
+    padding:6px 6px 9px;cursor:pointer;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between}
+  .cell:active{transform:scale(.97)}
+  .cell .dnum{font:700 15px/1 var(--display)}
+  .cell .loss{font:600 10px/1 var(--display);align-self:flex-start}
+  .cell .loss.zero{color:var(--muted)}
+  .cell .loss:not(.zero):not(.gain){color:var(--pine)}
+  .cell .loss.gain{color:var(--clay)}
+  .cell.today{border-color:var(--pine);border-width:2px;padding:5px 5px 8px}
+  .cell.future{opacity:.5}
+  .cell .bar{position:absolute;left:0;bottom:0;height:3px;background:var(--pine)}
+  .blank{background:transparent;border:none;cursor:default}
+
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+  .card h2{font:600 13px/1 var(--body);letter-spacing:.04em;text-transform:uppercase;color:var(--muted);
+    margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+  .chip{font:600 12px var(--display);background:var(--pine-soft);color:var(--pine);padding:3px 9px;border-radius:20px;letter-spacing:0}
+
+  /* day page */
+  .back{display:inline-flex;align-items:center;gap:6px;color:var(--pine);font-weight:600;font-size:15px;
+    background:none;border:none;cursor:pointer;padding:4px 0;margin-bottom:4px}
+  .daytitle{font:700 23px/1.1 var(--display);letter-spacing:-.01em;margin-bottom:14px;text-transform:capitalize}
+  .ringwrap{display:flex;justify-content:center;margin:4px 0 6px}
+  .ringwrap svg{width:150px;height:150px}
+  .ringlabel{text-align:center;color:var(--muted);font-size:13px;margin-bottom:18px}
+
+  .opt{display:flex;align-items:center;gap:13px;padding:13px 0;border-top:1px solid var(--line);cursor:pointer;user-select:none}
+  .opt:first-of-type{border-top:none}
+  .box{width:25px;height:25px;border-radius:8px;border:2px solid var(--line);flex:none;display:grid;place-items:center;
+    color:#fff;font-size:14px;font-weight:700;transition:.15s}
+  .opt.on .box{background:var(--pine);border-color:var(--pine)}
+  .opt .txt{font-size:15px;color:var(--ink)}
+
+  .wfield{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+  .wfield label{font-size:13px;color:var(--muted);font-weight:500;flex:none}
+  .wfield input{font:600 19px var(--display);color:var(--ink);background:var(--paper);border:1px solid var(--line);
+    border-radius:10px;padding:10px 12px;width:120px;font-variant-numeric:tabular-nums;-moz-appearance:textfield}
+  .wfield input:focus{outline:2px solid var(--pine);border-color:transparent}
+  .wfield input::-webkit-outer-spin-button,.wfield input::-webkit-inner-spin-button{-webkit-appearance:none}
+  .wnote{font-size:13px;color:var(--muted)}
+  .wnote b{font-family:var(--display);color:var(--pine)}
+
+  /* info + settings */
+  details{border-top:1px solid var(--line);padding-top:4px}
+  summary{list-style:none;cursor:pointer;padding:10px 0}
+  summary::-webkit-details-marker{display:none}
+  summary h2{margin:0}
+  .info h3{font:600 13px var(--body);color:var(--pine);margin:14px 0 6px;text-transform:uppercase;letter-spacing:.04em}
+  .info ul{list-style:none;display:flex;flex-direction:column;gap:8px}
+  .info li{font-size:14px;color:var(--ink);padding-left:16px;position:relative}
+  .info li::before{content:"";position:absolute;left:0;top:8px;width:6px;height:6px;border-radius:50%;background:var(--pine)}
+  .info .disc{font-size:12px;color:var(--muted);margin-top:14px;padding-left:0}
+  .info .disc::before{display:none}
+
+  .fields{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .field label{font-size:12px;color:var(--muted);font-weight:500}
+  .field input{font:600 16px var(--display);color:var(--ink);background:var(--paper);border:1px solid var(--line);
+    border-radius:10px;padding:10px 12px;width:100%;font-variant-numeric:tabular-nums;-moz-appearance:textfield}
+  .field input:focus{outline:2px solid var(--pine);border-color:transparent}
+  .btn{display:block;width:100%;font:600 15px var(--body);color:var(--pine);background:transparent;
+    border:1px solid var(--line);border-radius:12px;padding:13px;margin-top:14px;cursor:pointer}
+
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--ink);
+    color:#fff;padding:11px 20px;border-radius:30px;font-size:14px;font-weight:500;opacity:0;pointer-events:none;transition:.25s;z-index:9}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .note{font-size:12px;color:var(--clay);margin-top:10px;display:none}
+
+  @media(max-width:360px){ .total{font-size:40px} .cal{grid-auto-rows:52px} .cell .dnum{font-size:14px} }
+</style>
+</head>
+<body>
+
+<!-- ============ HOME ============ -->
+<div id="home">
+  <div class="eyebrow">Toplam verilen</div>
+  <div class="total" id="total">0<small>kg</small></div>
+  <div class="cap" id="totalCap">3.0 kg hedeften</div>
+  <div class="pbar"><i id="totalBar" style="width:0%"></i></div>
+
+  <div class="calcap" id="calCap">—</div>
+  <div class="calhead" id="calhead"></div>
+  <div class="cal" id="cal"></div>
+
+  <div class="card info" style="margin-top:22px">
+    <details open>
+      <summary><h2>Bilgilendirme</h2></summary>
+      <h3>Beslenme</h3>
+      <ul>
+        <li>Her öğüne avuç içi kadar protein koy (yumurta, tavuk, balık, yoğurt, baklagil). Günlük hedef 160–180 g.</li>
+        <li>Tabağın yarısı sebze olsun: tokluk ve lif verir, kaloriyi aşağı çeker.</li>
+        <li>Şekerli içecek ve işlenmiş atıştırmalıkları kes — en hızlı kalori tasarrufu burada.</li>
+        <li>Günde 2.5–3 L su iç; açlıkla susuzluk sık karışır.</li>
+      </ul>
+      <h3>Spor</h3>
+      <ul>
+        <li>Haftada 3 gün direnç antrenmanı, açıktayken kası koruyan en kritik unsurdur.</li>
+        <li>Günde 8–10 bin adım, kasa dokunmadan açık yaratmanın en temiz yolu.</li>
+        <li>Ağırlıklarını en az koru; güç düşmüyorsa kas da korunuyordur.</li>
+      </ul>
+      <h3>Kilo kaybı</h3>
+      <ul>
+        <li>İlk haftaki düşüşün çoğu sudur — tartı oynar, panik yok, haftalık ortalamaya bak.</li>
+        <li>Haftada 0.5–0.75 kg sağlıklı hız; daha hızlısı kas kaybı riskini artırır.</li>
+        <li>7–8 saat uyku hem iştahı hem kas korumasını doğrudan etkiler.</li>
+      </ul>
+      <div class="disc">60 yaş ve mevcut sağlık durumun için planı bir hekimle teyit etmekte fayda var.</div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary><h2>Hedefleri düzenle ⚙︎</h2></summary>
+      <div class="fields">
+        <div class="field"><label for="pStart">Başlangıç (kg)</label><input type="number" id="pStart" step="0.1"></div>
+        <div class="field"><label for="pGoal">Hedef (kg)</label><input type="number" id="pGoal" step="0.1"></div>
+        <div class="field"><label for="pDays">Süre (gün)</label><input type="number" id="pDays"></div>
+        <div class="field"><label for="pDate">Başlangıç tarihi</label><input type="date" id="pDate"></div>
+      </div>
+      <button class="btn" id="saveProfile">Hedefleri kaydet</button>
+      <div class="note" id="storeNote">Veriler bu oturumda tutuluyor; sayfayı kapatınca kaybolabilir.</div>
+    </details>
+  </div>
+</div>
+
+<!-- ============ DAY ============ -->
+<div id="day" class="hidden">
+  <button class="back" id="back">‹ Takvim</button>
+  <div class="daytitle" id="dayTitle">—</div>
+
+  <div class="ringwrap" id="ring"></div>
+  <div class="ringlabel">günün tamamlanma oranı</div>
+
+  <div class="card">
+    <h2>Kilo</h2>
+    <div class="wfield">
+      <label for="dWeight">Bugünkü kilo</label>
+      <input type="number" id="dWeight" inputmode="decimal" step="0.1" placeholder="kg">
+    </div>
+    <div class="wnote" id="dCum">—</div>
+  </div>
+
+  <div class="card">
+    <h2>Beslenme — öğünler</h2>
+    <div id="nutList"></div>
+  </div>
+
+  <div class="card">
+    <h2>Spor <span class="chip" id="sporPct">0%</span></h2>
+    <div class="pbar" style="margin-top:-4px;margin-bottom:14px"><i id="sporBar" style="width:0%"></i></div>
+    <div id="exList"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast">Kaydedildi</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const todayStr = () => new Date().toLocaleDateString('en-CA');
+function addDays(s,n){const d=new Date(s+'T00:00:00');d.setDate(d.getDate()+n);return d.toLocaleDateString('en-CA');}
+function fmt(n){return Number(n).toFixed(1);}
+
+const NUTRITION=[
+  {key:'kahvalti',lab:'Kahvaltı (protein ağırlıklı)'},
+  {key:'ogle',lab:'Öğle yemeği'},
+  {key:'aksam',lab:'Akşam yemeği'},
+  {key:'ara',lab:'Ara öğün (kontrollü)'},
+  {key:'kalori',lab:'Kalori hedefinde kaldım (≤1950)'},
+  {key:'su',lab:'Su (2.5–3 L)'},
+];
+const EXERCISE=[
+  {key:'adim',lab:'8.000+ adım'},
+  {key:'direnc',lab:'Direnç antrenmanı'},
+  {key:'core',lab:'Karın / core'},
+  {key:'esneme',lab:'Esneme / soğuma'},
+];
+
+let profile={startWeight:90,goalWeight:87,days:30,startDate:todayStr()};
+let entries={};
+let storageOK=true;
+let curDate=null;
+
+const store={
+  async get(k){
+    if(window.storage){try{const r=await window.storage.get(k);return r&&r.value?r.value:null;}catch(e){}}
+    try{return localStorage.getItem(k);}catch(e){return null;}
+  },
+  async set(k,v){
+    if(window.storage){try{await window.storage.set(k,v);return true;}catch(e){}}
+    try{localStorage.setItem(k,v);return true;}catch(e){return false;}
+  }
+};
+async function loadData(){
+  const p=await store.get('profile');if(p){try{profile={...profile,...JSON.parse(p)};}catch(e){}}
+  const en=await store.get('entries');if(en){try{entries=JSON.parse(en);}catch(e){}}
+}
+async function persist(k,v){const ok=await store.set(k,JSON.stringify(v));if(!ok){storageOK=false;$('storeNote').style.display='block';}}
+
+/* ---- model ---- */
+function getDay(d){const e=entries[d]||{weight:null,meals:{},spor:{}};e.meals=e.meals||{};e.spor=e.spor||{};return e;}
+function sortedDates(){return Object.keys(entries).sort();}
+function latestWeight(){const d=sortedDates().filter(k=>getDay(k).weight!=null);return d.length?getDay(d[d.length-1]).weight:profile.startWeight;}
+function cumLoss(d){const ds=sortedDates().filter(k=>k<=d&&getDay(k).weight!=null);if(!ds.length)return null;return profile.startWeight-getDay(ds[ds.length-1]).weight;}
+function dayPct(d){const e=getDay(d);const m=NUTRITION.filter(i=>e.meals[i.key]).length;const s=EXERCISE.filter(i=>e.spor[i.key]).length;return Math.round((m+s)/(NUTRITION.length+EXERCISE.length)*100);}
+function sporPct(d){const e=getDay(d);const s=EXERCISE.filter(i=>e.spor[i.key]).length;return Math.round(s/EXERCISE.length*100);}
+
+/* ---- home ---- */
+function renderHome(){
+  const cur=latestWeight();
+  const lost=profile.startWeight-cur;
+  const tot=$('total');
+  tot.classList.toggle('gain',lost<-0.04);
+  tot.innerHTML=(lost<-0.04?'+'+fmt(Math.abs(lost)):fmt(Math.max(0,lost)))+'<small>kg</small>';
+  const goalDiff=profile.startWeight-profile.goalWeight;
+  $('totalCap').textContent=fmt(goalDiff)+' kg hedeften · güncel '+fmt(cur)+' kg';
+  $('totalBar').style.width=Math.max(0,Math.min(100,(lost/goalDiff)*100))+'%';
+
+  const s=new Date(profile.startDate+'T00:00:00');
+  const e=new Date(addDays(profile.startDate,profile.days-1)+'T00:00:00');
+  const sm=s.toLocaleDateString('tr-TR',{month:'long'}),em=e.toLocaleDateString('tr-TR',{month:'long'});
+  $('calCap').textContent=(sm===em?sm:sm+' – '+em)+' '+e.getFullYear();
+
+  $('calhead').innerHTML=['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'].map(d=>`<div class="wd">${d}</div>`).join('');
+  let cells='';
+  const lead=(s.getDay()+6)%7;
+  for(let i=0;i<lead;i++)cells+=`<div class="blank"></div>`;
+  for(let i=0;i<profile.days;i++){
+    const ds=addDays(profile.startDate,i);
+    const dnum=new Date(ds+'T00:00:00').getDate();
+    const cum=cumLoss(ds),pct=dayPct(ds);
+    const isT=ds===todayStr(),isF=ds>todayStr();
+    let loss;
+    if(cum==null)loss=`<div class="loss zero">·</div>`;
+    else if(cum>0.049)loss=`<div class="loss">▾${fmt(cum)}</div>`;
+    else if(cum<-0.049)loss=`<div class="loss gain">▴${fmt(Math.abs(cum))}</div>`;
+    else loss=`<div class="loss zero">0</div>`;
+    cells+=`<div class="cell ${isT?'today':''} ${isF?'future':''}" data-d="${ds}">
+      <div class="dnum">${dnum}</div>${loss}<div class="bar" style="width:${pct}%"></div></div>`;
+  }
+  $('cal').innerHTML=cells;
+  $('cal').querySelectorAll('.cell').forEach(c=>c.onclick=()=>openDay(c.dataset.d));
+}
+
+/* ---- day ---- */
+function renderRing(pct){
+  const C=2*Math.PI*52,off=C*(1-pct/100);
+  $('ring').innerHTML=`<svg viewBox="0 0 120 120">
+    <circle cx="60" cy="60" r="52" fill="none" stroke="#E4E7E2" stroke-width="11"/>
+    <circle cx="60" cy="60" r="52" fill="none" stroke="#2F6F5E" stroke-width="11" stroke-linecap="round"
+      stroke-dasharray="${C}" stroke-dashoffset="${off}" transform="rotate(-90 60 60)"/>
+    <text x="60" y="58" text-anchor="middle" font-family="Space Grotesk" font-weight="700" font-size="30" fill="#1C2B27">${pct}%</text>
+    <text x="60" y="76" text-anchor="middle" font-family="Inter" font-size="10" fill="#6B756F">tamam</text></svg>`;
+}
+function renderDay(){
+  const d=curDate,e=getDay(d);
+  $('dayTitle').textContent=new Date(d+'T00:00:00').toLocaleDateString('tr-TR',{day:'numeric',month:'long',weekday:'long'});
+  renderRing(dayPct(d));
+  $('dWeight').value=e.weight??'';
+  const cum=cumLoss(d);
+  $('dCum').innerHTML=cum==null?'Henüz kilo girilmedi':`Bugüne kadar verilen: <b>${cum>=0?fmt(cum):'+'+fmt(Math.abs(cum))} kg</b>`;
+  $('nutList').innerHTML=NUTRITION.map(i=>`<div class="opt ${e.meals[i.key]?'on':''}" data-grp="meals" data-k="${i.key}">
+    <div class="box">${e.meals[i.key]?'✓':''}</div><div class="txt">${i.lab}</div></div>`).join('');
+  $('exList').innerHTML=EXERCISE.map(i=>`<div class="opt ${e.spor[i.key]?'on':''}" data-grp="spor" data-k="${i.key}">
+    <div class="box">${e.spor[i.key]?'✓':''}</div><div class="txt">${i.lab}</div></div>`).join('');
+  const sp=sporPct(d);$('sporPct').textContent=sp+'%';$('sporBar').style.width=sp+'%';
+  document.querySelectorAll('#day .opt').forEach(o=>o.onclick=()=>toggle(o.dataset.grp,o.dataset.k));
+}
+async function toggle(grp,k){
+  const e=getDay(curDate);e[grp][k]=!e[grp][k];entries[curDate]=e;
+  await persist('entries',entries);renderDay();
+}
+
+/* ---- nav ---- */
+function showHome(){$('day').classList.add('hidden');$('home').classList.remove('hidden');renderHome();window.scrollTo(0,0);}
+function openDay(d){curDate=d;$('home').classList.add('hidden');$('day').classList.remove('hidden');renderDay();window.scrollTo(0,0);
+  history.pushState({view:'day',date:d},'');}
+$('back').onclick=()=>history.back();
+window.addEventListener('popstate',e=>{ if(e.state&&e.state.view==='day'){curDate=e.state.date;$('home').classList.add('hidden');$('day').classList.remove('hidden');renderDay();window.scrollTo(0,0);} else showHome(); });
+
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1500);}
+
+/* ---- init ---- */
+(async function(){
+  await loadData();
+  $('pStart').value=profile.startWeight;$('pGoal').value=profile.goalWeight;
+  $('pDays').value=profile.days;$('pDate').value=profile.startDate;
+  history.replaceState({view:'home'},'');
+  renderHome();
+
+  $('dWeight').onchange=async()=>{
+    const v=$('dWeight').value.trim();const e=getDay(curDate);e.weight=v===''?null:Number(v);entries[curDate]=e;
+    await persist('entries',entries);renderDay();
+  };
+  $('saveProfile').onclick=async()=>{
+    profile={startWeight:Number($('pStart').value)||profile.startWeight,goalWeight:Number($('pGoal').value)||profile.goalWeight,
+      days:Number($('pDays').value)||profile.days,startDate:$('pDate').value||profile.startDate};
+    await persist('profile',profile);renderHome();toast('Hedefler güncellendi');
+  };
+})();
+</script>
+</body>
+</html>
